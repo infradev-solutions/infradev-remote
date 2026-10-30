@@ -19,13 +19,13 @@ Assim, o cliente só instala, abre e te passa o ID. Nada para configurar.
 Já dá para usar o RustDesk oficial apontando para o seu servidor:
 
 - **Windows, sem configurar nada no cliente:** baixe o RustDesk oficial e renomeie o executável para
-  `infradev-remote-host=remote.infradevsolutions.com.br,key=SUA_CHAVE_PUBLICA,.exe`.
+  `infradev-remote-host=remote.infradevsolutions.com.br,key=9dzORD6JxDS5qOC8omsYO2408R6o42+Hv0gHb0N9Dxg=,.exe`.
   Ele já abre ligado ao seu servidor.
 - **Qualquer sistema:** Configurações → Rede → Servidor ID/Relay. Preencha:
   - Servidor de ID: `remote.infradevsolutions.com.br`
   - Servidor de relay: `remote.infradevsolutions.com.br`
   - Servidor de API: `http://remote.infradevsolutions.com.br:21114`
-  - Chave: conteúdo de `server/data/id_ed25519.pub`
+  - Chave: `9dzORD6JxDS5qOC8omsYO2408R6o42+Hv0gHb0N9Dxg=`
 
 ## Catálogo de endereços
 
