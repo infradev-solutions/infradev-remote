@@ -23,10 +23,9 @@ Acesso remoto da InfraDev Solutions, no estilo AnyDesk, gratuito e com servidor 
 
 ## Ordem de implantação
 
-1. DNS: [docs/dns.md](docs/dns.md)
-2. Portas no MikroTik: [docs/mikrotik.md](docs/mikrotik.md)
-3. Servidor: [server/README.md](server/README.md)
-4. App: [client/README.md](client/README.md)
+1. Servidor, do Ubuntu recém-instalado até o painel no ar: [server/README.md](server/README.md)
+   (inclui DNS na HostGator e portas no MikroTik)
+2. App: [client/README.md](client/README.md)
 
 ## Licença
 
