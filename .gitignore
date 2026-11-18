@@ -3,3 +3,4 @@ server/data/
 server/api-data/
 server/.duckdns-falhou
 server/.monitor-estado
+server/https-data/

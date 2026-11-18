@@ -6,7 +6,7 @@ set -u
 cd "$SERVER_DIR" || exit 1
 
 problemas=()
-for servico in hbbs hbbr api; do
+for servico in hbbs hbbr api https; do
   if [ -z "$(docker compose ps --status running -q "$servico" 2>/dev/null)" ]; then
     problemas+=("serviço $servico parado")
   fi

@@ -25,10 +25,23 @@ services:
       - RUSTDESK_API_LANG=pt-BR
       - RUSTDESK_API_RUSTDESK_ID_SERVER=${PUBLIC_HOST}:21116
       - RUSTDESK_API_RUSTDESK_RELAY_SERVER=${PUBLIC_HOST}:21117
-      - RUSTDESK_API_RUSTDESK_API_SERVER=http://${PUBLIC_HOST}:21114
+      - RUSTDESK_API_RUSTDESK_API_SERVER=https://${PUBLIC_HOST}:21443
       - RUSTDESK_API_RUSTDESK_KEY_FILE=/app/data/keys/id_ed25519.pub
     volumes:
       - ./api-data:/app/data
       - ./data:/app/data/keys:ro
     ports: ["21114:21114"]
+    restart: unless-stopped
+
+  https: # HTTPS do painel e do catálogo na porta 21443 (certificado Let's Encrypt via DuckDNS)
+    build: ./https
+    environment:
+      - PUBLIC_HOST=${PUBLIC_HOST}
+      - DUCKDNS_DOMAIN=${DUCKDNS_DOMAIN}
+      - DUCKDNS_TOKEN=${DUCKDNS_TOKEN}
+    volumes:
+      - ./https/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./https-data:/data
+    ports: ["21443:21443"]
+    depends_on: [api]
     restart: unless-stopped

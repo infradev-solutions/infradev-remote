@@ -3,7 +3,7 @@
 Passo a passo completo, partindo de um **Ubuntu Server recém-instalado**, acessado só por SSH.
 Siga na ordem. Os comandos são para Ubuntu 22.04 ou 24.04.
 
-O servidor não usa as portas 80 nem 443, só de 21114 a 21119.
+O servidor não usa as portas 80 nem 443, só de 21114 a 21119 e a 21443.
 
 ---
 
@@ -152,7 +152,7 @@ Depois que o DNS e as portas estiverem prontos, o endereço externo é
 `http://remote.infradevsolutions.com.br:21114/_admin/`.
 
 As sessões de acesso remoto são criptografadas de ponta a ponta em qualquer caso.
-O painel começa em HTTP; colocar HTTPS numa porta alta é um próximo passo.
+O painel começa em HTTP; o HTTPS fica pronto no passo 11.
 
 ## 10. DNS e portas no roteador
 
@@ -164,6 +164,29 @@ Para testar de fora da sua rede (por exemplo, de um notebook no 4G do celular):
 ```bash
 nc -vz remote.infradevsolutions.com.br 21116
 ```
+
+## 11. HTTPS do painel e do catálogo (porta 21443)
+
+O login do catálogo leva as senhas das máquinas, então ele não deve andar em HTTP pela internet.
+O serviço `https` tira um certificado do Let's Encrypt sozinho, sem usar as portas 80/443,
+publicando um código no DuckDNS.
+
+1. Crie na HostGator o CNAME `_acme-challenge.remote` (ver [docs/dns.md](../docs/dns.md)).
+2. Confira que `DUCKDNS_DOMAIN` e `DUCKDNS_TOKEN` estão no `.env`.
+3. Libere a porta: `sudo ufw allow 21443/tcp`, e no MikroTik siga [docs/mikrotik.md](../docs/mikrotik.md#https-do-painel-porta-21443).
+4. Suba (a primeira vez compila o Caddy e leva alguns minutos):
+
+   ```bash
+   cd /opt/infradev-remote/server
+   docker compose up -d --build
+   docker compose logs -f https
+   ```
+
+   Espere a linha `certificate obtained successfully` e abra `https://remote.infradevsolutions.com.br:21443/_admin/`.
+5. Nos seus aparelhos, troque o servidor de API para `https://remote.infradevsolutions.com.br:21443`
+   (os próximos builds do app já vêm com ele). Depois feche a 21114 para fora, como explicado no `docs/mikrotik.md`.
+
+O certificado se renova sozinho e fica em `https-data/`, que também entra no backup.
 
 ---
 
@@ -248,7 +271,8 @@ cd /opt/infradev-remote/server && docker compose logs -f --tail 50
 
 | Porta | Protocolo | Para quê |
 |---|---|---|
-| 21114 | TCP | Painel web e catálogo de endereços |
+| 21114 | TCP | Painel web e catálogo de endereços (HTTP; fechar para fora depois do HTTPS) |
+| 21443 | TCP | Painel web e catálogo de endereços com HTTPS |
 | 21115 | TCP | Teste de tipo de NAT |
 | 21116 | TCP e UDP | Servidor de IDs (registro e encontro das máquinas) |
 | 21117 | TCP | Relay (repasse da conexão) |

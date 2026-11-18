@@ -13,7 +13,7 @@ arquivo="$destino/infradev-remote-$(date +%F).tar.gz"
 # Para o painel por alguns segundos para o banco do catálogo não ser copiado no meio de uma escrita.
 # IDs e relay continuam funcionando.
 docker compose stop api > /dev/null 2>&1
-tar czf "$arquivo" data api-data
+tar czf "$arquivo" data api-data $( [ -d https-data ] && echo https-data )
 ok=$?
 docker compose start api > /dev/null 2>&1
 

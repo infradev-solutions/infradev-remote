@@ -1,0 +1,14 @@
+# HTTPS do painel e do catálogo na porta 21443, repassando para o serviço "api".
+# O desafio do Let's Encrypt é respondido no DuckDNS: na HostGator, _acme-challenge.remote
+# precisa ser um CNAME para o nome do DuckDNS (veja docs/dns.md).
+{
+	auto_https disable_redirects
+}
+
+{$PUBLIC_HOST}:21443 {
+	tls {
+		dns duckdns {$DUCKDNS_TOKEN}
+		dns_challenge_override_domain {$DUCKDNS_DOMAIN}.duckdns.org
+	}
+	reverse_proxy api:21114
+}

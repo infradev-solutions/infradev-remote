@@ -10,6 +10,10 @@ Apague o registro A antigo de `remote`, se existir, e adicione:
 | Tipo | Nome | Valor | TTL |
 |---|---|---|---|
 | CNAME | `remote` | `remoteinfradev.duckdns.org` | 300 |
+| CNAME | `_acme-challenge.remote` | `remoteinfradev.duckdns.org` | 300 |
+
+O segundo registro serve só para o certificado HTTPS do painel (porta 21443): o Let's Encrypt
+confere um código que o servidor publica no DuckDNS.
 
 Para conferir (pode levar alguns minutos):
 
