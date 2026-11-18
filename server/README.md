@@ -3,7 +3,7 @@
 Passo a passo completo, partindo de um **Ubuntu Server recém-instalado**, acessado só por SSH.
 Siga na ordem. Os comandos são para Ubuntu 22.04 ou 24.04.
 
-O servidor não usa as portas 80 nem 443, só de 21114 a 21119.
+O servidor não usa as portas 80 nem 443, só de 21114 a 21119 e a 21443.
 
 ---
 
@@ -152,7 +152,7 @@ Depois que o DNS e as portas estiverem prontos, o endereço externo é
 `http://remote.infradevsolutions.com.br:21114/_admin/`.
 
 As sessões de acesso remoto são criptografadas de ponta a ponta em qualquer caso.
-O painel começa em HTTP; colocar HTTPS numa porta alta é um próximo passo.
+O painel começa em HTTP; o HTTPS fica pronto no passo 11.
 
 ## 10. DNS e portas no roteador
 
@@ -165,6 +165,29 @@ Para testar de fora da sua rede (por exemplo, de um notebook no 4G do celular):
 nc -vz remote.infradevsolutions.com.br 21116
 ```
 
+## 11. HTTPS do painel e do catálogo (porta 21443)
+
+O login do catálogo leva as senhas das máquinas, então ele não deve andar em HTTP pela internet.
+O serviço `https` tira um certificado do Let's Encrypt sozinho, sem usar as portas 80/443,
+publicando um código no DuckDNS.
+
+1. Crie na HostGator o CNAME `_acme-challenge.remote` (ver [docs/dns.md](../docs/dns.md)).
+2. Confira que `DUCKDNS_DOMAIN` e `DUCKDNS_TOKEN` estão no `.env`.
+3. Libere a porta: `sudo ufw allow 21443/tcp`, e no MikroTik siga [docs/mikrotik.md](../docs/mikrotik.md#https-do-painel-porta-21443).
+4. Suba (a primeira vez compila o Caddy e leva alguns minutos):
+
+   ```bash
+   cd /opt/infradev-remote/server
+   docker compose up -d --build
+   docker compose logs -f https
+   ```
+
+   Espere a linha `certificate obtained successfully` e abra `https://remote.infradevsolutions.com.br:21443/_admin/`.
+5. Nos seus aparelhos, troque o servidor de API para `https://remote.infradevsolutions.com.br:21443`
+   (os próximos builds do app já vêm com ele). Depois feche a 21114 para fora, como explicado no `docs/mikrotik.md`.
+
+O certificado se renova sozinho e fica em `https-data/`, que também entra no backup.
+
 ---
 
 ## Manutenção
@@ -176,14 +199,67 @@ cd /opt/infradev-remote && git pull
 cd server && docker compose pull && docker compose up -d
 ```
 
-**Backup** (chaves e catálogo; guarde fora do servidor):
+As versões das imagens ficam fixas no `docker-compose.yml`, então o `pull` só traz versão nova
+quando ela for trocada ali (depois de testada). Isso evita que uma atualização do Docker Hub quebre o servidor.
+
+### Tarefas automáticas (DuckDNS, monitor e backup)
+
+Os scripts ficam em `server/scripts/` e leem as configurações do `.env`
+(veja o `.env.example`: DuckDNS, Telegram e backup). Copie as linhas novas do `.env.example` para o seu `.env`
+e proteja o arquivo, que passa a ter tokens: `chmod 600 .env`.
+
+1. **Avisos no Telegram (opcional, recomendado).** No Telegram, fale com `@BotFather`, mande `/newbot` e
+   copie o token para `TELEGRAM_BOT_TOKEN`. Mande qualquer mensagem para o seu bot e abra
+   `https://api.telegram.org/botSEU_TOKEN/getUpdates`: o número em `"chat":{"id":...}` vai em `TELEGRAM_CHAT_ID`.
+2. **DuckDNS.** Copie o token do seu `~/duckdns/duck.sh` para `DUCKDNS_TOKEN`.
+3. **Backup para fora do servidor (opcional, recomendado).** `sudo apt install -y rclone`, depois
+   `rclone config` (por exemplo, um remoto `gdrive` do Google Drive) e preencha `RCLONE_REMOTE=gdrive:infradev-remote`.
+4. Teste cada um à mão:
+
+   ```bash
+   cd /opt/infradev-remote/server
+   scripts/duckdns.sh && echo DuckDNS OK
+   scripts/monitor.sh
+   sudo scripts/backup.sh && ls -l "$(grep ^BACKUP_DIR .env | cut -d= -f2)"
+   ```
+
+5. Troque o cron antigo do DuckDNS por estes (`crontab -e` no seu usuário, apague a linha do `duck.sh`):
+
+   ```
+   */5 * * * * /opt/infradev-remote/server/scripts/duckdns.sh
+   */5 * * * * /opt/infradev-remote/server/scripts/monitor.sh
+   ```
+
+   E o backup no cron do root (`sudo crontab -e`), porque os arquivos do banco são do root:
+
+   ```
+   30 3 * * * /opt/infradev-remote/server/scripts/backup.sh
+   ```
+
+O que cada um faz:
+
+| Script | Quando | Avisa quando |
+|---|---|---|
+| `duckdns.sh` | a cada 5 min | o DuckDNS responde "KO" (uma vez, e de novo quando voltar) |
+| `monitor.sh` | a cada 5 min | algum serviço parou, o servidor ficou sem internet ou o DNS não aponta para o IP atual |
+| `backup.sh` | 03:30 | o backup ou a cópia para fora falha |
+
+O `backup.sh` para o painel por alguns segundos para copiar o banco com segurança; IDs e relay continuam no ar.
+
+**Monitor de fora (recomendado).** Se o servidor ou a internet caírem, ele não consegue avisar sozinho.
+Crie uma conta grátis no [UptimeRobot](https://uptimerobot.com), adicione um monitor do tipo **Port**
+para `remote.infradevsolutions.com.br`, porta `21116`, intervalo de 5 minutos, com aviso por e-mail ou Telegram.
+
+**Restaurar um backup:**
 
 ```bash
 cd /opt/infradev-remote/server
-sudo tar czf ~/backup-infradev-remote-$(date +%F).tar.gz data api-data
+docker compose down
+sudo tar xzf ~/backups-infradev-remote/infradev-remote-AAAA-MM-DD.tar.gz
+docker compose up -d
 ```
 
-Se você perder a pasta `data`, o servidor gera uma chave nova e todos os apps instalados param de conectar.
+Se você perder a pasta `data` sem backup, o servidor gera uma chave nova e todos os apps instalados param de conectar.
 
 **Ver logs:**
 
@@ -195,7 +271,8 @@ cd /opt/infradev-remote/server && docker compose logs -f --tail 50
 
 | Porta | Protocolo | Para quê |
 |---|---|---|
-| 21114 | TCP | Painel web e catálogo de endereços |
+| 21114 | TCP | Painel web e catálogo de endereços (HTTP; fechar para fora depois do HTTPS) |
+| 21443 | TCP | Painel web e catálogo de endereços com HTTPS |
 | 21115 | TCP | Teste de tipo de NAT |
 | 21116 | TCP e UDP | Servidor de IDs (registro e encontro das máquinas) |
 | 21117 | TCP | Relay (repasse da conexão) |
