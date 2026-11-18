@@ -176,14 +176,67 @@ cd /opt/infradev-remote && git pull
 cd server && docker compose pull && docker compose up -d
 ```
 
-**Backup** (chaves e catálogo; guarde fora do servidor):
+As versões das imagens ficam fixas no `docker-compose.yml`, então o `pull` só traz versão nova
+quando ela for trocada ali (depois de testada). Isso evita que uma atualização do Docker Hub quebre o servidor.
+
+### Tarefas automáticas (DuckDNS, monitor e backup)
+
+Os scripts ficam em `server/scripts/` e leem as configurações do `.env`
+(veja o `.env.example`: DuckDNS, Telegram e backup). Copie as linhas novas do `.env.example` para o seu `.env`
+e proteja o arquivo, que passa a ter tokens: `chmod 600 .env`.
+
+1. **Avisos no Telegram (opcional, recomendado).** No Telegram, fale com `@BotFather`, mande `/newbot` e
+   copie o token para `TELEGRAM_BOT_TOKEN`. Mande qualquer mensagem para o seu bot e abra
+   `https://api.telegram.org/botSEU_TOKEN/getUpdates`: o número em `"chat":{"id":...}` vai em `TELEGRAM_CHAT_ID`.
+2. **DuckDNS.** Copie o token do seu `~/duckdns/duck.sh` para `DUCKDNS_TOKEN`.
+3. **Backup para fora do servidor (opcional, recomendado).** `sudo apt install -y rclone`, depois
+   `rclone config` (por exemplo, um remoto `gdrive` do Google Drive) e preencha `RCLONE_REMOTE=gdrive:infradev-remote`.
+4. Teste cada um à mão:
+
+   ```bash
+   cd /opt/infradev-remote/server
+   scripts/duckdns.sh && echo DuckDNS OK
+   scripts/monitor.sh
+   sudo scripts/backup.sh && ls -l "$(grep ^BACKUP_DIR .env | cut -d= -f2)"
+   ```
+
+5. Troque o cron antigo do DuckDNS por estes (`crontab -e` no seu usuário, apague a linha do `duck.sh`):
+
+   ```
+   */5 * * * * /opt/infradev-remote/server/scripts/duckdns.sh
+   */5 * * * * /opt/infradev-remote/server/scripts/monitor.sh
+   ```
+
+   E o backup no cron do root (`sudo crontab -e`), porque os arquivos do banco são do root:
+
+   ```
+   30 3 * * * /opt/infradev-remote/server/scripts/backup.sh
+   ```
+
+O que cada um faz:
+
+| Script | Quando | Avisa quando |
+|---|---|---|
+| `duckdns.sh` | a cada 5 min | o DuckDNS responde "KO" (uma vez, e de novo quando voltar) |
+| `monitor.sh` | a cada 5 min | algum serviço parou, o servidor ficou sem internet ou o DNS não aponta para o IP atual |
+| `backup.sh` | 03:30 | o backup ou a cópia para fora falha |
+
+O `backup.sh` para o painel por alguns segundos para copiar o banco com segurança; IDs e relay continuam no ar.
+
+**Monitor de fora (recomendado).** Se o servidor ou a internet caírem, ele não consegue avisar sozinho.
+Crie uma conta grátis no [UptimeRobot](https://uptimerobot.com), adicione um monitor do tipo **Port**
+para `remote.infradevsolutions.com.br`, porta `21116`, intervalo de 5 minutos, com aviso por e-mail ou Telegram.
+
+**Restaurar um backup:**
 
 ```bash
 cd /opt/infradev-remote/server
-sudo tar czf ~/backup-infradev-remote-$(date +%F).tar.gz data api-data
+docker compose down
+sudo tar xzf ~/backups-infradev-remote/infradev-remote-AAAA-MM-DD.tar.gz
+docker compose up -d
 ```
 
-Se você perder a pasta `data`, o servidor gera uma chave nova e todos os apps instalados param de conectar.
+Se você perder a pasta `data` sem backup, o servidor gera uma chave nova e todos os apps instalados param de conectar.
 
 **Ver logs:**
 

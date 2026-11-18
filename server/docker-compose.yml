@@ -1,9 +1,10 @@
 # Servidor InfraDev Remote (base: RustDesk Server OSS + API do catálogo de endereços)
 # hbbs/hbbr vêm do fork lejianwen: o original não conecta quando o app está logado no catálogo.
+# Versões fixas: para atualizar, troque a tag/digest aqui depois de testar (veja server/README.md).
 # Uso: ajuste o .env e rode: docker compose up -d
 services:
   hbbs: # servidor de IDs: registra as máquinas e faz o encontro entre elas
-    image: lejianwen/rustdesk-server:latest
+    image: lejianwen/rustdesk-server:v0@sha256:5cd2466d68beb56b3c82eefc92c77d43cfb0991d9384d73e5fdf74d0b4a31127
     command: hbbs -r ${PUBLIC_HOST}:21117 -k _
     volumes: ["./data:/root"]
     network_mode: host
@@ -11,14 +12,14 @@ services:
     restart: unless-stopped
 
   hbbr: # relay: repassa a conexão quando não dá para ligar as máquinas direto
-    image: lejianwen/rustdesk-server:latest
+    image: lejianwen/rustdesk-server:v0@sha256:5cd2466d68beb56b3c82eefc92c77d43cfb0991d9384d73e5fdf74d0b4a31127
     command: hbbr -k _
     volumes: ["./data:/root"]
     network_mode: host
     restart: unless-stopped
 
   api: # painel web + catálogo de endereços sincronizado (lejianwen/rustdesk-api)
-    image: lejianwen/rustdesk-api:latest
+    image: lejianwen/rustdesk-api:v2.7@sha256:ed35016339d3bcadf15c7bb3ae8490af1e3950c33f58fd2261ae009b94f5de45
     environment:
       - TZ=America/Sao_Paulo
       - RUSTDESK_API_LANG=pt-BR

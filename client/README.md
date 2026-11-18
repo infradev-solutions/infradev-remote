@@ -1,22 +1,23 @@
 # App InfraDev Remote
 
-## Plano
+## Como o app é feito
 
-O app é uma versão personalizada do RustDesk (AGPL-3.0), num fork separado:
-`infradev-solutions/infradev-remote-client`.
+O app é uma versão personalizada do RustDesk (AGPL-3.0), no fork
+[`infradev-solutions/rustdesk`](https://github.com/infradev-solutions/rustdesk).
 
-No fork, aplicamos:
+No fork, a pasta `infradev/` aplica a marca antes de cada build:
 1. Nome **InfraDev Remote**, ícone e cores da InfraDev.
 2. Servidor `remote.infradevsolutions.com.br`, chave pública e API do catálogo já embutidos
-   (variáveis `RENDEZVOUS_SERVER`, `RS_PUB_KEY` e `API_SERVER`, guardadas como *secrets* do GitHub).
-3. Builds automáticos no GitHub Actions para Windows, macOS, Linux e Android.
-   iOS sai como app só de controle (a Apple não permite que um iPhone seja controlado).
+   (configurados em `infradev/branding.env`, aplicados por `infradev/apply-branding.sh`).
+3. Builds no GitHub Actions (workflow **InfraDev build**, disparado à mão) para Windows, macOS, Linux e Android.
+   Os instaladores saem na release [`instaladores`](https://github.com/infradev-solutions/infradev-remote/releases/tag/instaladores).
+   iOS não é gerado (precisa de conta Apple Developer; e o iPhone só pode controlar, não ser controlado).
 
 Assim, o cliente só instala, abre e te passa o ID. Nada para configurar.
 
-## Enquanto o app personalizado não fica pronto
+## Usar o RustDesk oficial com o seu servidor
 
-Já dá para usar o RustDesk oficial apontando para o seu servidor:
+Se precisar, o RustDesk oficial também funciona apontando para o seu servidor:
 
 - **Windows, sem configurar nada no cliente:** baixe o RustDesk oficial e renomeie o executável para
   `infradev-remote-host=remote.infradevsolutions.com.br,key=9dzORD6JxDS5qOC8omsYO2408R6o42+Hv0gHb0N9Dxg=,.exe`.
